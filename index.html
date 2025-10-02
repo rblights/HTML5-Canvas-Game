@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <!doctype html>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.13.0/gsap.min.js" integrity="sha512-NcZdtrT77bJr4STcmsGAESr06BYGE8woZdSdEgqnpyqac7sugNO+Tr4bGwGF3MsnEkGKhU2KL2xh6Ec+BqsaHA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="main.js" defer></script>
+</head>
+    <style>
+        body {
+            background: black;
+        }
+    </style>
+    <div class = "fixed text-white ml-2 mt-2 select-none"><span>Score: </span><span id="Score">0</span></div>
+    <div class = "fixed inset-0 flex items-center justify-center" id = "Popup">
+        <div class = "bg-white max-w-md w-full p-5 text-center">
+            <h1 class = "text-5xl font-bold leading-none" id="popupScore">0</h1>
+            <p class = "text-gray-500 mb-5">Points</p>
+            <div>
+            <button class = "bg-blue-500 text-white w-full py-3 rounded-full" id = "startButton">Start Game</button>
+        </div>
+        </div>
+        
+    </div>
+    <canvas></canvas>
+</html>
