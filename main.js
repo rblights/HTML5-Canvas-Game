@@ -1,41 +1,31 @@
-console.log(gsap)
-const CANVAS = document.querySelector('canvas');
-const CONTEXT = CANVAS.getContext('2d');
-let Frames = 0;
+import {Canvas} from "./Canvas.js"
+import {Player} from "./Player.js"
+import {Projectile} from "./Projectile.js"
+import {Enemy} from "./Enemy.js"
+import {Particle} from "./Particle.js"
 
-CANVAS.width = innerWidth;
-CANVAS.height = innerHeight;
+
+const CANVAS = new Canvas();
+
+console.log(gsap)
+let Frames = 0;
 
 const SCORE = document.querySelector('#Score')
 const START_BUTTON = document.querySelector('#startButton')
 const POPUP = document.querySelector('#Popup')
 const POPUP_SCORE = document.querySelector('#popupScore')
 
-
-
-class Player {
-    constructor(x, y, radius, color) {
-        this.x = x;
-        this.y = y;
-        this.radius = radius;
-        this.color = color;
-    }
-    draw() {
-        CONTEXT.beginPath();
-        CONTEXT.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false)
-        CONTEXT.fillStyle = this.color;
-        CONTEXT.fill()
-    }
-}
-
-let PLAYER = new Player(CANVAS.width / 2, CANVAS.height / 2, 10, 'white');
+let PLAYER = new Player(CANVAS.canvas.width / 2, CANVAS.canvas.height / 2, 10, 'white', CANVAS.context);
+console.log(PLAYER)
 let PROJECTILES = [];
 let ENEMIES = [];
 let PARTICLES = [];
 let Score = 0
 
+console.log(CANVAS.context === PLAYER.context) //true
+
 function Init() {
-    PLAYER = new Player(CANVAS.width / 2, CANVAS.height / 2, 10, 'white');
+    PLAYER = new Player(CANVAS.canvas.width / 2, CANVAS.canvas.height / 2, 10, 'white', CANVAS.context);
     ENEMIES = [];
     PROJECTILES = [];
     PARTICLES = [];
@@ -43,109 +33,37 @@ function Init() {
     SCORE.innerHTML = POPUP_SCORE.innerHTML = Score
 }
 
-
-class Projectile {
-    constructor(x, y, radius, color, velocity) {
-        this.x = x;
-        this.y = y;
-        this.radius = radius;
-        this.color = color;
-        this.velocity = velocity;
-
-    }
-    draw() {
-        CONTEXT.beginPath();
-        CONTEXT.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false)
-        CONTEXT.fillStyle = this.color;
-        CONTEXT.fill()
-    }
-
-    update() {
-        this.x += this.velocity.x * 5;
-        this.y += this.velocity.y * 5;
-    }
-}
-
-class Enemy {
-    constructor(x, y, radius, color, velocity) {
-        this.x = x;
-        this.y = y;
-        this.radius = radius;
-        this.color = color;
-        this.velocity = velocity;
-
-    }
-    draw() {
-        CONTEXT.beginPath();
-        CONTEXT.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false)
-        CONTEXT.fillStyle = this.color;
-        CONTEXT.fill()
-    }
-
-    update() {
-        this.x += this.velocity.x;
-        this.y += this.velocity.y;
-    }
-}
-
 function spawnEnemies() {
     let radius = Math.random() * (50 - 10) + 10
     let x
     let y
     if (Math.random() < .5) {
-        x = Math.random() < .5 ? 0 - radius : CANVAS.width + radius
-        y = Math.random() * CANVAS.height
+        x = Math.random() < .5 ? 0 - radius : CANVAS.canvas.width + radius
+        y = Math.random() * CANVAS.canvas.height
     } else {
-        x = Math.random() * CANVAS.width
-        y = Math.random() < .5 ? 0 - radius : CANVAS.height + radius
+        x = Math.random() * CANVAS.canvas.width
+        y = Math.random() < .5 ? 0 - radius : CANVAS.canvas.height + radius
     }
     const ANGLE = Math.atan2(PLAYER.y - y, PLAYER.x - x)
     const VELOCITY = {x: Math.cos(ANGLE), y: Math.sin(ANGLE)}
     const ENEMY_COLOR = `hsl(${Math.random() * 360}, 50%, 50%)`
-    ENEMIES.push(new Enemy(x, y, radius, ENEMY_COLOR, VELOCITY))
+    ENEMIES.push(new Enemy(x, y, radius, ENEMY_COLOR, VELOCITY, CANVAS.context))
 }
 
-class Particle {
-    constructor(x, y, radius, color, velocity) {
-        this.x = x;
-        this.y = y;
-        this.radius = radius;
-        this.color = color;
-        this.velocity = velocity;
-        this.alpha = 1;
 
-    }
-    draw() {
-        CONTEXT.save()
-        CONTEXT.globalAlpha = this.alpha
-        CONTEXT.beginPath();
-        CONTEXT.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false)
-        CONTEXT.fillStyle = this.color;
-        CONTEXT.fill()
-        CONTEXT.restore()
-    }
-
-    update() {
-        this.x += this.velocity.x * .1;
-        this.y += this.velocity.y * .1;
-        this.alpha -= .001
-    }
-}
 
 let animationID
 function Animate() {
     animationID = requestAnimationFrame(Animate);
     Frames++;
-    CONTEXT.fillStyle = 'rgba(0, 0, 0, .1)'
-    CONTEXT.fillRect(0, 0, CANVAS.width, CANVAS.height);
+    CANVAS.context.fillStyle = 'rgba(0, 0, 0, .1)'
+    CANVAS.context.fillRect(0, 0, CANVAS.canvas.width, CANVAS.canvas.height);
     PLAYER.draw();
 
     PROJECTILES.forEach((PROJECTILE, projectileIndex) => {
         PROJECTILE.update();
         PROJECTILE.draw();
         PARTICLES.forEach((Particle, particleIndex) => {
-            Particle.update();
-            Particle.draw();
              if (Particle.alpha <= 0) {
                 PARTICLES.splice(particleIndex, 1)
             } else {
@@ -155,10 +73,10 @@ function Animate() {
         
         })
 
-        if (Projectile.x + Projectile.radius < 0 ||
-            Projectile.x - Projectile.radius > CANVAS.width ||
-            Projectile.y + Projectile.radius < 0 ||
-            Projectile.y - Projectile.radius > CANVAS.height
+        if (PROJECTILE.x + PROJECTILE.radius < 0 ||
+            PROJECTILE.x - PROJECTILE.radius > CANVAS.canvas.width ||
+            PROJECTILE.y + PROJECTILE.radius < 0 ||
+            PROJECTILE.y - PROJECTILE.radius > CANVAS.canvas.height
         ) {
             setTimeout(() => {
                 PROJECTILES.splice(projectileIndex, 1)
@@ -184,7 +102,7 @@ function Animate() {
                 Score += 10
                 SCORE.innerHTML = Score
                 if (Enemy.radius - 10 > 10) {
-                    gsap.to(Enemy, {
+                    window.gsap.to(Enemy, {
                         radius: Enemy.radius - 10
                     })
                     setTimeout(() => {
@@ -194,13 +112,14 @@ function Animate() {
                     setTimeout(() => {
                         ENEMIES.splice(enemyIndex, 1)
                         PROJECTILES.splice(projectileIndex, 1)
-                        for (let i = 0; i < Enemy.radius; i++) {
+                        for (let i = 0; i < Enemy.radius / 2; i++) {
                             PARTICLES.push(new Particle(
                                 Projectile.x, 
                                 Projectile.y, 
                                 Math.random() * 2, 
                                 Enemy.color, 
-                                {x: (Math.random() - .5) * (Math.random() * 8), y: (Math.random() - .5) * (Math.random() * 8)}))
+                                {x: (Math.random() - .5) * (Math.random() * 8), y: (Math.random() - .5) * (Math.random() * 8)},
+                                CANVAS.context))
                         }
                     
                     }, 0)
@@ -211,16 +130,20 @@ function Animate() {
     
 }
 
-addEventListener('click', (event) => {
+addEventListener('click', (event) => {   
+
     const ANGLE = Math.atan2(event.clientY - PLAYER.y, event.clientX - PLAYER.x);
     const VELOCITY = {x: Math.cos(ANGLE),y: Math.sin(ANGLE)};
-    PROJECTILES.push(new Projectile(
+
+    const PROJECTILE = new Projectile(
         PLAYER.x,
         PLAYER.y,
         5,
         'red',
-        VELOCITY) 
-    )
+        VELOCITY,
+        CANVAS.context)  
+
+    PROJECTILES.push(PROJECTILE) 
 });
 
 START_BUTTON.addEventListener('click', () => {
