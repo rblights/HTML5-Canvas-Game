@@ -6,31 +6,35 @@ import {Particle} from "./Particle.js"
 
 
 const CANVAS = new Canvas();
-
-console.log(gsap)
-let Frames = 0;
-
 const SCORE = document.querySelector('#Score')
 const START_BUTTON = document.querySelector('#startButton')
 const POPUP = document.querySelector('#Popup')
 const POPUP_SCORE = document.querySelector('#popupScore')
 
 let PLAYER = new Player(CANVAS.canvas.width / 2, CANVAS.canvas.height / 2, 10, 'white', CANVAS.context);
-console.log(PLAYER)
-let PROJECTILES = [];
-let ENEMIES = [];
-let PARTICLES = [];
+
+let frameCount = 0;
+let Projectiles = [];
+let Enemies = [];
+let Particles = [];
 let Score = 0
 
-console.log(CANVAS.context === PLAYER.context) //true
-
 function Init() {
+    CANVAS.context.fillStyle = 'rgba(0, 0, 0, 1)';
+    CANVAS.context.fillRect(0, 0, CANVAS.canvas.width, CANVAS.canvas.height);
     PLAYER = new Player(CANVAS.canvas.width / 2, CANVAS.canvas.height / 2, 10, 'white', CANVAS.context);
-    ENEMIES = [];
-    PROJECTILES = [];
-    PARTICLES = [];
+    Enemies = [];
+    Projectiles = [];
+    Particles = [];
     Score = 0
     SCORE.innerHTML = POPUP_SCORE.innerHTML = Score
+}
+
+function handleTimingAndSpawning() {
+    frameCount++;
+    if (frameCount % 60 === 0) {
+        spawnEnemies();
+    }
 }
 
 function spawnEnemies() {
@@ -46,87 +50,95 @@ function spawnEnemies() {
     }
     const ANGLE = Math.atan2(PLAYER.y - y, PLAYER.x - x)
     const VELOCITY = {x: Math.cos(ANGLE), y: Math.sin(ANGLE)}
-    const ENEMY_COLOR = `hsl(${Math.random() * 360}, 50%, 50%)`
-    ENEMIES.push(new Enemy(x, y, radius, ENEMY_COLOR, VELOCITY, CANVAS.context))
+    const Enemy_COLOR = `hsl(${Math.random() * 360}, 50%, 50%)`
+    Enemies.push(new Enemy(x, y, radius, Enemy_COLOR, VELOCITY, CANVAS.context))
 }
+
+function renderEntities() {
+    CANVAS.context.fillStyle = 'rgba(0, 0, 0, .1)';
+    CANVAS.context.fillRect(0, 0, CANVAS.canvas.width, CANVAS.canvas.height);
+
+    PLAYER.draw();
+    Particles.forEach(p => p.draw());
+    Projectiles.forEach(p => p.draw());
+    Enemies.forEach(e => e.draw());
+}
+
+function updateEntities() {
+    Particles.forEach(p => p.update());
+    Projectiles.forEach(p => p.update());
+    Enemies.forEach(e => e.update());
+}
+
+function handleCollisionsAndCleanup() {
+    Particles = Particles.filter(p => p.alpha > 0);
+
+    for (let i = Projectiles.length - 1; i >= 0; i--) {
+        let projectile = Projectiles[i];
+
+        if (projectile.x + projectile.radius < 0 || 
+            projectile.x - projectile.radius > CANVAS.canvas.width
+        ) {
+            Projectiles.splice(i, 1);
+            continue;
+        }
+
+        for (let j = Enemies.length - 1; j >= 0; j--) {
+            let Enemy = Enemies[j];
+            const DISTANCE = Math.hypot(projectile.x - Enemy.x, projectile.y - Enemy.y);
+
+            if (DISTANCE - Enemy.radius - projectile.radius <= 0) {
+                Score += 10;
+                SCORE.innerHTML = Score;
+                Projectiles.splice(i, 1); 
+                if (Enemy.radius > 20) {
+                    Enemy.radius -= 10
+                } else {
+                    for (let k = 0; k < Enemy.radius / 2; k++) {
+                        let angle = Math.random() * Math.PI * 2;
+                        let speed = Math.random() * 10 + 5
+                        let velocity = {
+                            x: Math.cos(angle) * speed,
+                            y: Math.sin(angle) * speed
+                        };
+                        let particle = new Particle(
+                        Enemy.x,
+                        Enemy.y,
+                        Math.random() * 3 + 1,
+                        Enemy.color,
+                        velocity,
+                        CANVAS.context)  
+                        Particles.push(particle)
+                    }
+                    Enemies.splice(j, 1)
+                }
+                continue;
+            }
+        }
+    }
+
+    for (let Enemy of Enemies) {
+        const DISTANCE = Math.hypot(PLAYER.x - Enemy.x, PLAYER.y - Enemy.y);
+
+        if (DISTANCE - Enemy.radius - PLAYER.radius < 0) {
+            cancelAnimationFrame(animationID);
+            POPUP_SCORE.innerHTML = Score;
+            POPUP.style.display = 'flex';
+            return;
+        }
+    }
+}
+
 
 
 
 let animationID
 function Animate() {
     animationID = requestAnimationFrame(Animate);
-    Frames++;
-    CANVAS.context.fillStyle = 'rgba(0, 0, 0, .1)'
-    CANVAS.context.fillRect(0, 0, CANVAS.canvas.width, CANVAS.canvas.height);
-    PLAYER.draw();
-
-    PROJECTILES.forEach((PROJECTILE, projectileIndex) => {
-        PROJECTILE.update();
-        PROJECTILE.draw();
-        PARTICLES.forEach((Particle, particleIndex) => {
-             if (Particle.alpha <= 0) {
-                PARTICLES.splice(particleIndex, 1)
-            } else {
-                Particle.update();
-                Particle.draw(); 
-            }
-        
-        })
-
-        if (PROJECTILE.x + PROJECTILE.radius < 0 ||
-            PROJECTILE.x - PROJECTILE.radius > CANVAS.canvas.width ||
-            PROJECTILE.y + PROJECTILE.radius < 0 ||
-            PROJECTILE.y - PROJECTILE.radius > CANVAS.canvas.height
-        ) {
-            setTimeout(() => {
-                PROJECTILES.splice(projectileIndex, 1)
-            }, 0)
-        }
-    })
-    if (Frames % 60 === 0) { spawnEnemies(); }
-    ENEMIES.forEach((Enemy, enemyIndex) =>{
-        Enemy.update();
-        Enemy.draw();
-        const DISTANCE = Math.hypot(PLAYER.x - Enemy.x, PLAYER.y - Enemy.y)
-
-        if (DISTANCE - Enemy.radius - PLAYER.radius < 1) {
-            cancelAnimationFrame(animationID)
-            POPUP_SCORE.innerHTML = Score
-            POPUP.style.display = 'flex'
-        }
-
-        PROJECTILES.forEach((Projectile, projectileIndex) => {
-            const DISTANCE = Math.hypot(Projectile.x - Enemy.x, Projectile.y - Enemy.y)
-
-            if (DISTANCE - Enemy.radius - Projectile.radius < 0) {
-                Score += 10
-                SCORE.innerHTML = Score
-                if (Enemy.radius - 10 > 10) {
-                    window.gsap.to(Enemy, {
-                        radius: Enemy.radius - 10
-                    })
-                    setTimeout(() => {
-                        PROJECTILES.splice(projectileIndex, 1)
-                    }, 0)
-                } else {
-                    setTimeout(() => {
-                        ENEMIES.splice(enemyIndex, 1)
-                        PROJECTILES.splice(projectileIndex, 1)
-                        for (let i = 0; i < Enemy.radius / 2; i++) {
-                            PARTICLES.push(new Particle(
-                                Projectile.x, 
-                                Projectile.y, 
-                                Math.random() * 2, 
-                                Enemy.color, 
-                                {x: (Math.random() - .5) * (Math.random() * 8), y: (Math.random() - .5) * (Math.random() * 8)},
-                                CANVAS.context))
-                        }
-                    
-                    }, 0)
-                }
-            }
-        })
-    })
+    handleTimingAndSpawning();
+    updateEntities();
+    handleCollisionsAndCleanup();
+    renderEntities();
     
 }
 
@@ -135,7 +147,7 @@ addEventListener('click', (event) => {
     const ANGLE = Math.atan2(event.clientY - PLAYER.y, event.clientX - PLAYER.x);
     const VELOCITY = {x: Math.cos(ANGLE),y: Math.sin(ANGLE)};
 
-    const PROJECTILE = new Projectile(
+    let projectile = new Projectile(
         PLAYER.x,
         PLAYER.y,
         5,
@@ -143,7 +155,7 @@ addEventListener('click', (event) => {
         VELOCITY,
         CANVAS.context)  
 
-    PROJECTILES.push(PROJECTILE) 
+    Projectiles.push(projectile) 
 });
 
 START_BUTTON.addEventListener('click', () => {
